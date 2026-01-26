@@ -1,0 +1,7 @@
+{
+  "best_val": 0.7572548377637206,
+  "best_test": 0.6463768861042657,
+  "best_epoch": 91,
+  "best_model_path": "arcmol_batch_runs/CHEMBL2147_Ki/trial_0092/best_arcmol_arc_reg_RDKFingerprint+MACCSkeys+EStateFingerprint+MolT5+BioT5+AttrMask+GPT-GNN+GraphCL+MolCLR+GraphMVP+GROVER+UniMolV1+UniMolV2_84M+UniMolV2_1.1B_seed42.pth",
+  "bundle_path": "arcmol_batch_runs/CHEMBL2147_Ki/trial_0092/best_arcmol_arc_reg_RDKFingerprint+MACCSkeys+EStateFingerprint+MolT5+BioT5+AttrMask+GPT-GNN+GraphCL+MolCLR+GraphMVP+GROVER+UniMolV1+UniMolV2_84M+UniMolV2_1.1B_seed42.bundle.pt"
+}
