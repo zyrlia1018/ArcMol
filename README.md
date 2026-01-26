@@ -6,13 +6,12 @@ This repository accompanies the paper:
 
 It provides a **fully reproducible pipeline** for molecular property prediction using ArcMol, covering:
 
-- Molecular representation extraction
+- Molecular representation preparation
 - Task-adaptive ArcMol training
 - Optuna-based hyperparameter search
 - Test-only inference from trained models
+- Extraction of **learned task-adaptive spherical representations**
 - Batch evaluation and metric reporting
-
-The code is organized to clearly separate **representation extraction** and **ArcMol modeling**, following the experimental setup in the paper.
 
 ---
 
@@ -20,11 +19,11 @@ The code is organized to clearly separate **representation extraction** and **Ar
 
 This project uses **two separate conda environments**, corresponding to two distinct stages.
 
-### 1. `cmd_fp` — Molecular Representation Extraction
+### 1. `cmd_fp` — Molecular Representation Preparation
 
 This environment is used to:
-- Generate molecular representations (fingerprints / embeddings)
-- Produce intermediate `.pkl` feature files consumed by ArcMol
+- Prepare initial molecular representations (e.g. fingerprints, pretrained embeddings)
+- Generate `.pkl` files that serve as **inputs to ArcMol training**
 
 Typical outputs:
 - `*_train.pkl`
@@ -36,19 +35,22 @@ Environment file:
 cmd_fp.yml
 ```
 
-### 2. `cmd_arcmol` — ArcMol Training & Evaluation
+> ⚠️ The code for molecular representation preparation is **not included** in this repository, as it may depend on external toolkits or proprietary pipelines.
+
+---
+
+### 2. `cmd_arcmol` — ArcMol Training & Analysis
 
 This environment is used to:
 - Train ArcMol models
 - Run Optuna hyperparameter search
 - Perform inference and evaluation
+- Extract **task-adaptive hidden representations (Z)** from trained models
 
 Environment file:
 ```text
 cmd_arcmol.yml
 ```
-
-> ⚠️ These two environments are intentionally decoupled to ensure reproducibility and modularity.
 
 ---
 
@@ -58,12 +60,11 @@ cmd_arcmol.yml
 arcmol/
 ├── src/
 │   ├── attention_pooling_fusion.py     # ArcMol attention pooling module
-│   ├── main_arcmol.py                  # ArcMol training (AUC / RMSE)
 │   ├── main_arcmol_mcc_r2.py           # ArcMol training (MCC / R2)
 │   ├── optuna_arcmol_search.py         # Optuna (single task)
 │   ├── optuna_batch_tasks.py           # Optuna (batch tasks)
 │   ├── test_only_arcmol.py             # Test-only inference
-│   └── extract_features_z.py           # Extract learned ArcMol representations
+│   └── extract_features_z.py           # Extract learned ArcMol Z representations
 │
 ├── scripts/
 │   ├── batch_test.py                   # Batch testing
@@ -99,14 +100,14 @@ arcmol/
 
 ## Environment Setup
 
-### Create `cmd_fp` (Feature Extraction)
+### Create `cmd_fp`
 
 ```bash
 conda env create -f cmd_fp.yml
 conda activate cmd_fp
 ```
 
-### Create `cmd_arcmol` (ArcMol)
+### Create `cmd_arcmol`
 
 ```bash
 conda env create -f cmd_arcmol.yml
@@ -115,61 +116,183 @@ conda activate cmd_arcmol
 
 ---
 
-## Step 1: Molecular Representation Extraction
+## Step 1: Prepare Input Molecular Features
 
-Using the **cmd_fp** environment, generate molecular representations and save them as `.pkl` files.
+Using the **cmd_fp** environment, prepare molecular representations and save them as `.pkl` files.
 
-Example:
+These `.pkl` files are **inputs to ArcMol**, and are *not* produced by ArcMol itself.
 
-```bash
-conda activate cmd_fp
-python extract_features_z.py   --input_csv molecules.csv   --output_pkl bbb_logbb_train.pkl
+Each `.pkl` file should correspond to one data split:
+
+```text
+{task_name}_train.pkl
+{task_name}_valid.pkl   # optional
+{task_name}_test.pkl
 ```
 
-The generated `.pkl` files are later consumed directly by ArcMol.
+The exact feature extraction method (e.g., fingerprints, pretrained encoders) is **outside the scope of this repository**.
 
 ---
 
-## Step 2: ArcMol Training
+## Step 1: Prepare Molecular Representation `.pkl` Files (cmd_fp)
 
-Switch to the **cmd_arcmol** environment.
+ArcMol **consumes precomputed** molecular representation files in `.pkl` format:
 
-### Classification Example (BBB)
+- `{task_name}_train.pkl`
+- `{task_name}_valid.pkl` (optional)
+- `{task_name}_test.pkl`
+
+These `.pkl` files are generated in the **`cmd_fp`** environment using a *separate feature-generation pipeline* (e.g., fingerprints / pretrained embeddings).
+> Note: The feature-generation code is **not included** in this repository; please use your existing pipeline to produce the required `{task_name}_{split}.pkl` files.
+
+After you have produced the `.pkl` files, place them under `data/` (or any directory you will pass as `--data_dir`).
+
+---
+
+## Step 2:
+## Step 2: ArcMol Training (with Hyperparameter Optimization)
+
+ArcMol models are trained in the **`cmd_arcmol`** environment.
+Training can be performed in **two modes**:
+
+1. **Fixed-parameter training** (manual hyperparameters)
+2. **Optuna-based hyperparameter optimization** (recommended, used in the paper)
+
+---
+
+### 2.1 Fixed-parameter Training
+
+This mode runs a single training job with user-specified hyperparameters.
+
+#### Classification Example (BBB)
 
 ```bash
 conda activate cmd_arcmol
-python src/main_arcmol_mcc_r2.py   --data_dir data   --task_name bbb_logbb   --task_type cls   --target_name label   --epochs 1000   --batch_size 64
+python src/main_arcmol_mcc_r2.py \
+  --data_dir data \
+  --task_name bbb_logbb \
+  --task_type cls \
+  --target_name label \
+  --epochs 1000 \
+  --batch_size 64
 ```
 
-### Regression Example (CHEMBL2147 Ki)
+#### Regression Example (CHEMBL2147 Ki)
 
 ```bash
-python src/main_arcmol.py   --data_dir data   --task_name CHEMBL2147_Ki   --task_type reg   --target_name Ki   --epochs 1000   --batch_size 64
+python src/main_arcmol_mcc_r2.py \
+  --data_dir data \
+  --task_name CHEMBL2147_Ki \
+  --task_type reg \
+  --target_name Ki \
+  --epochs 1000 \
+  --batch_size 64
 ```
 
-Training produces:
-- `model.pth` (model checkpoint)
-- `model.bundle.pt` (self-contained inference bundle)
+Training outputs:
+- `*.pth`: model checkpoint
+- `*.bundle.pt`: self-contained inference bundle (used for testing and feature extraction)
 
 ---
+
+### 2.2 Optuna-based Hyperparameter Optimization 
+
+**ArcMol models are trained using Optuna** to select task-adaptive hyperparameters.
+
+#### Single-task Optimization
+
+```bash
+conda activate cmd_arcmol
+python src/optuna_arcmol_search.py \
+  --data_dir data \
+  --task_name bbb_logbb \
+  --task_type cls \
+  --target_name label \
+  --n_trials 50 \
+  --save_root arcmol_study_runs/bbb_logbb
+```
+
+For each Optuna trial:
+- A full ArcMol training run is executed
+- Hyperparameters are sampled automatically (learning rate, ArcFace margin/scale, MoE, fusion, regularization)
+- Each trial is stored under `trial_XXXX/`
+
+After optimization, the **best-performing trial** is automatically copied to:
+
+```text
+arcmol_study_runs/bbb_logbb/best_<metric>/
+```
+
+including:
+- best model checkpoint (`*.pth`)
+- exported inference bundle (`*.bundle.pt`)
+- calibration files (if available)
+
+#### Batch-task Optimization
+
+```bash
+python src/optuna_batch_tasks.py \
+  --tasks_csv configs/tasks_template_admet.csv \
+  --n_trials 100 \
+  --save_root arcmol_batch_runs
+```
+
+In batch mode:
+- Each task has an independent Optuna study
+- Task type (cls / reg) can be specified or automatically inferred
+- Best models are saved to `best_auc/` or `best_rmse/`
+- A global summary is written to `batch_best_summary.csv`
+
+---
+
 
 ## Step 3: Test-only Inference
 
 ```bash
-python src/test_only_arcmol.py   --data_dir data   --task_name bbb_logbb   --bundle checkpoints/bbb_logbb/model.bundle.pt   --ckpt checkpoints/bbb_logbb/model.pth   --save_preds preds_bbb.csv
+python src/test_only_arcmol.py \
+  --data_dir data \
+  --task_name bbb_logbb \
+  --bundle checkpoints/bbb_logbb/model.bundle.pt \
+  --ckpt checkpoints/bbb_logbb/model.pth \
+  --save_preds preds_bbb.csv
 ```
+
+
 
 ---
+## Step 4: Extract Learned ArcMol Hidden Representations (Z)
 
-## Step 4: Extract Learned ArcMol Representations
+`extract_features_z.py` extracts **trained ArcMol hidden-layer representations (Z)** for downstream analysis, using:
 
-After training, ArcMol representations can be extracted for downstream analysis.
+- the exported training bundle: `*.bundle.pt`
+- the model checkpoint: `*.pth`
+- the original dataset splits: `{task_name}_{split}.pkl`
+
+### CLI Arguments
+
+- `--data_dir`: directory containing `{task_name}_{split}.pkl`
+- `--task_name`: task name prefix (e.g., `bbb_logbb`)
+- `--bundle`: `*.bundle.pt` exported during training
+- `--ckpt`: optional; override `ckpt_path` inside bundle
+- `--output_dir`: directory to save extracted Z features (`.pkl`)
+- `--batch_size`: inference batch size
+- `--splits`: which splits to process (`train`, `valid`, `test`)
+
+### Example
 
 ```bash
-python src/extract_features_z.py   --bundle checkpoints/bbb_logbb/model.bundle.pt   --ckpt checkpoints/bbb_logbb/model.pth   --data_dir data   --task_name bbb_logbb   --output_pkl bbb_logbb_z.pkl
+conda activate cmd_arcmol
+python src/extract_features_z.py \
+  --data_dir data \
+  --task_name bbb_logbb \
+  --bundle checkpoints/bbb_logbb/model.bundle.pt \
+  --ckpt checkpoints/bbb_logbb/model.pth \
+  --output_dir z_features_output \
+  --batch_size 128 \
+  --splits train valid test
 ```
 
-These representations correspond to **task-adaptive spherical embeddings** described in the paper.
+The script will write split-wise Z features as `.pkl` files into `--output_dir`.
 
 ---
 
@@ -186,11 +309,11 @@ Outputs:
 
 ---
 
-## Notes on Reproducibility
+## Reproducibility Notes
 
-- All datasets and trained models used in the paper are provided
-- Feature extraction and modeling are strictly separated
-- Bundles ensure consistent inference across environments
+- Initial molecular features and ArcMol representations are **clearly separated**
+- Z features are always extracted **after training**
+- Bundles ensure consistent inference across runs and environments
 
 ---
 
