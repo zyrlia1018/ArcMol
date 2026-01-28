@@ -17,15 +17,11 @@ It provides a **fully reproducible pipeline** for molecular property prediction 
 
 ## Visual Overview
 
-<img src="toc/TOC.jpg" width="512">
+<p align="center">
+  <img src="toc/TOC.jpg" width="360">
+</p>
 
 *Conceptual overview of ArcMol. The framework learns task-adaptive spherical latent representations for molecular property prediction.*
-
-<br><br>
-
-<img src="toc/ARCMOL.jpg" width="768">
-
-*Detailed illustration of ArcMol, showing task-adaptive feature fusion, spherical projection, and downstream prediction.*
 
 ---
 
@@ -110,7 +106,13 @@ arcmol/
 ├── README.md
 └── .gitignore
 ```
+<br><br>
 
+<p align="center">
+  <img src="toc/ARCMOL.jpg" width="360">
+</p>
+
+*Detailed illustration of ArcMol, showing task-adaptive feature fusion, spherical projection, and downstream prediction.*
 ---
 
 ## Environment Setup
