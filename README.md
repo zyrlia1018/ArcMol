@@ -109,7 +109,7 @@ arcmol/
 <br><br>
 
 <p align="center">
-  <img src="toc/ARCMOL.jpg" width="360">
+  <img src="toc/ARCMOL.jpg" width="512">
 </p>
 
 *Detailed illustration of ArcMol, showing task-adaptive feature fusion, spherical projection, and downstream prediction.*
