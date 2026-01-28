@@ -113,6 +113,7 @@ arcmol/
 </p>
 
 *Detailed illustration of ArcMol, showing task-adaptive feature fusion, spherical projection, and downstream prediction.*
+
 ---
 
 ## Environment Setup
