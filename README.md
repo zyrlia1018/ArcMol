@@ -47,7 +47,7 @@ Environment file:
 cmd_fp.yml
 ```
 
-> ⚠️ The code for molecular representation preparation is **not included** in this repository, as it may depend on external toolkits or proprietary pipelines.
+> ⚠️ The code for molecular representation preparation is **not included** in this repository.
 
 ---
 
