@@ -47,7 +47,8 @@ Environment file:
 cmd_fp.yml
 ```
 
-> ⚠️ The code for molecular representation preparation is **not included** in this repository.
+> ⚠️ The core training and inference logic of ArcMol is hosted in this GitHub repository. However, due to the large file sizes and complex dependencies involved in molecular representation preparation, the complete experimental package is archived on Zenodo(doi: 10.5281/zenodo.18972759)
+
 
 ---
 
