@@ -53,9 +53,9 @@ cmd_fp.yml
 ---
 Specifically, the Zenodo archive contains:
 
-datasets_processed.tar.gz: Includes all raw data files and the pre-processed .pkl files (with generated molecular fingerprints/features) used in the study.
+'datasets_processed.tar.gz': Includes all raw data files and the pre-processed .pkl files (with generated molecular fingerprints/features) used in the study.
 
-FP_set.tar.gz: Contains the full source code for data processing and representation learning, along with the pre-trained model weights.
+'FP_set.tar.gz': Contains the full source code for data processing and representation learning, along with the pre-trained model weights.
 
 Given that the environment involves multiple deep-learning pre-trained models and can be complex to deploy manually, we are actively preparing a Docker image to provide a "plug-and-play" environment for the community. This will ensure seamless reproducibility and ease of use.
 
