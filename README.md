@@ -39,7 +39,7 @@ The pipeline is split into **two conda environments**, one for featurization and
 **Environment file:** `cmd_fp.yml`  
 Create and activate: see [Environment setup](#environment-setup).
 
-> **Note (GitHub vs Zenodo).** The **full experimental package** (preprocessed datasets, precomputed feature pickles, and aligned asset bundles) is distributed via Zenodo: [doi:10.5281/zenodo.18972759](https://doi.org/10.5281/zenodo.18972759).
+> **Note (GitHub vs Zenodo).** Training and inference code for ArcMol lives in this repository. Because featurization involves **large checkpoints** and **heavy, model-specific dependencies**, the **full experimental package** (preprocessed datasets, precomputed feature pickles, and aligned asset bundles) is distributed via Zenodo: [doi:10.5281/zenodo.18972759](https://doi.org/10.5281/zenodo.18972759).
 
 **Zenodo archive (summary)**
 
@@ -48,7 +48,7 @@ Create and activate: see [Environment setup](#environment-setup).
 | `datasets_processed.tar.gz` | Raw inputs and preprocessed `.pkl` files with molecular fingerprints and fused features used in the study. |
 | `FP_set.tar.gz` | Featurization source tree and **pre-trained** backbone weights aligned with the paper setup. |
 
-A **Webite app** is under development to simplify deployment of the featurization stack (multiple deep learning back ends). Until it is published, use `cmd_fp.yml` and the [DeepFP_Prep](DeepFP_Prep/README.md) documentation.
+A **Docker image** is under development to simplify deployment of the featurization stack (multiple deep learning back ends). Until it is published, use `cmd_fp.yml` and the [DeepFP_Prep](DeepFP_Prep/README.md) documentation.
 
 ---
 
@@ -87,6 +87,10 @@ arcmol/
 ├── scripts/
 │   ├── batch_test.py
 │   └── generate_report.py
+│
+├── notebook/                           # Z extraction + visualization walkthroughs (see Step 4)
+│   ├── latent_rep_z_cls.ipynb          # classification (e.g. BBB): t-SNE, 2D/3D sphere views
+│   └── latent_rep_z_reg.ipynb          # regression (e.g. CHEMBL2147 Ki)
 │
 ├── data/                               # small examples (BBB, CHEMBL2147 Ki)
 ├── checkpoints/                        # example trained bundles
@@ -132,6 +136,8 @@ Molecular representations must be prepared **before** ArcMol training, using the
 
 The **`DeepFP_Prep/`** workflow below is the supported in-repo option; externally generated PKLs are valid if they match ArcMol’s input contract.
 
+**Example (shipped in `data/`):** `bbb_logbb_train.pkl` / `*_valid.pkl` / `*_test.pkl` and `CHEMBL2147_Ki_{train,test}.pkl` follow the naming convention above and match the training commands in [Step 2](#step-2-arcmol-training).
+
 ---
 
 ## Step 1b: DeepFP_Prep — multi-representation PKLs from CSV
@@ -162,6 +168,18 @@ Follow the same organization as [MolRetrieval — Prepare model checkpoints](htt
 - Tables, links, and `feature_process.py` flags (`EMBEDDING_MODE`, `--list-embeddings`): **[`DeepFP_Prep/README.md`](DeepFP_Prep/README.md)**
 
 With **`cmd_fp`** active, run featurization from `DeepFP_Prep/`.
+
+**Example**
+
+```bash
+conda activate cmd_fp
+cd DeepFP_Prep
+python feature_process.py --list-embeddings   # optional: embeddings available in this env
+# set EMBEDDING_MODE in feature_process.py ("all" vs "allowed"), then:
+python feature_process.py
+```
+
+Chunked `*_batch_*.pkl` files can be merged or converted to `{task}_{split}.pkl` for ArcMol (see [`DeepFP_Prep/README.md`](DeepFP_Prep/README.md)).
 
 **中文摘要：** `DeepFP_Prep` 从 CSV 生成多路分子表征；预计算特征与完整实验资源见 Zenodo。大权重按上文与 `env_utils.py` 部署，或使用 `FP_set` / `DEEPFP_ASSETS_DIR`。细节见 `DeepFP_Prep/README.md` 与 `WEIGHTS_DOWNLOAD_LIST.txt`。
 
@@ -206,6 +224,8 @@ python src/main_arcmol_mcc_r2.py \
 - `*.pth` — model checkpoint  
 - `*.bundle.pt` — self-contained bundle for inference and feature extraction  
 
+**Example:** The BBB and CHEMBL2147 commands above use the small **`data/`** tree shipped in this repository (`--data_dir data`, tasks `bbb_logbb` / `CHEMBL2147_Ki`).
+
 ### 2.2 Optuna-based optimization
 
 #### Single task
@@ -240,6 +260,8 @@ python src/optuna_batch_tasks.py \
 
 Each row defines an independent study; task type (`cls` / `reg`) may be given or inferred. Best models are written under `best_auc/` or `best_rmse/`, with a global summary in `batch_best_summary.csv`.
 
+**Example:** Point `--data_dir` / `--tasks_csv` at the same layout as your Step 2 runs; `configs/tasks_template_admet.csv` is a starting template for batch mode.
+
 ---
 
 ## Step 3: Test-only inference (split PKLs with labels)
@@ -253,6 +275,8 @@ python src/test_only_arcmol.py \
   --ckpt checkpoints/bbb_logbb/model.pth \
   --save_preds preds_bbb.csv
 ```
+
+**Example:** Uses bundled **`data/`** splits and **`checkpoints/bbb_logbb/model.bundle.pt`** / **`model.pth`**; adjust paths for your own tasks.
 
 ---
 
@@ -271,6 +295,8 @@ python src/predict_arcmol_from_fp_pkls.py \
 **Defaults:** discover every `checkpoints/<task>/*.bundle.pt` with a matching `*.pth`, and write one wide table: **`预测/admet_all_endpoints_preds.csv`** (override with `--out_dir` / `--out_csv`). Use `--mode single` with explicit `--bundle` / `--ckpt` for a single task.
 
 PKL keys must match each bundle’s `fusion_embed_types` and RDKit attribute set. See the script header in `src/predict_arcmol_from_fp_pkls.py` for all options.
+
+**Example:** Set `--pkl_dir` to the folder that contains DeepFP_Prep **chunked** `*_batch_*.pkl` files; set `--checkpoints_root` to your trained models (e.g. `checkpoints` mirroring `checkpoints/<task>/`).
 
 **中文说明：** 无标签时，用 DeepFP 分块 pkl 目录可对 `checkpoints` 下全部任务一次性推理，默认合并为单个 CSV（仓库根目录 `预测/`）。
 
@@ -308,6 +334,17 @@ python src/extract_features_z.py \
 
 Split-wise Z matrices are written under `--output_dir`.
 
+**Worked example — interpreting and visualizing Z**
+
+The notebooks below run end-to-end: they load (or reproduce) **unit-normalized latent Z**, then show **t-SNE**, a **2D spherical map**, and a **3D sphere projection**—useful for qualitative inspection of the task-adaptive spherical representation.
+
+| Notebook | Task type | Illustrative task |
+|----------|-----------|-------------------|
+| [`notebook/latent_rep_z_cls.ipynb`](notebook/latent_rep_z_cls.ipynb) | Classification | e.g. BBB (`bbb_logbb`) |
+| [`notebook/latent_rep_z_reg.ipynb`](notebook/latent_rep_z_reg.ipynb) | Regression | e.g. `CHEMBL2147_Ki` |
+
+Open them from the repo root (or set `sys.path` as in the first cells) and edit the bundled paths (`DATA_DIR`, `BUNDLE_PATH`, `CKPT_PATH`, `OUT_DIR`) to match your artifacts.
+
 ---
 
 ## Step 5: Batch testing and reporting
@@ -319,6 +356,8 @@ python scripts/generate_report.py
 ```
 
 **Outputs:** `batch_test_results/*.csv`, `my_model_summary.csv`
+
+**Example:** In `scripts/batch_test.py`, set `TASKS_CSV_PATH` (must include `task_name` and `data_dir` columns), `CHECKPOINTS_ROOT`, and `OUTPUT_ROOT`, then run the two commands from the repository root with **`cmd_arcmol`** active. Use `scripts/generate_report.py` to aggregate metrics into `my_model_summary.csv` (edit paths inside the script if needed).
 
 ---
 
