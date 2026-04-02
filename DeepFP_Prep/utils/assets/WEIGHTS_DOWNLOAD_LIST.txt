@@ -1,0 +1,69 @@
+# DeepFP_Prep — pretrained checkpoints (concise)
+# Place files under utils/assets/ (paths below) or set DEEPFP_ASSETS_DIR. Paths match utils/env_utils.py.
+
+# --- Reference: MolRetrieval “Prepare model checkpoints” ---
+# https://github.com/linhaowei1/MolRetrieval#getting-started
+
+# =============================================================================
+# 1) Language models (Hugging Face) — use huggingface-cli
+#    Install: pip install -U huggingface_hub
+#    Guide: https://huggingface.co/docs/huggingface_hub/guides/download
+# =============================================================================
+#
+# Example (ChemBERTa):
+#   MODEL_DIR="ChemBERTa-77M-MTR"
+#   HF_PATH="DeepChem/ChemBERTa-77M-MTR"
+#   mkdir -p "$MODEL_DIR" && cd "$MODEL_DIR"
+#   huggingface-cli download "$HF_PATH" --local-dir ./
+#
+# MolT5  → utils/assets/MolT5/          repo: laituan245/molt5-base
+# BioT5  → utils/assets/BioT5/          repo: QizhiPei/biot5-base
+# ChemBERTa → utils/assets/ChemBERTa-77M-MTR/   repo: DeepChem/ChemBERTa-77M-MTR
+#
+# Direct weight files (optional wget/curl):
+#   https://huggingface.co/laituan245/molt5-base/resolve/main/pytorch_model.bin
+#   https://huggingface.co/QizhiPei/biot5-base/resolve/main/pytorch_model.bin
+#   https://huggingface.co/DeepChem/ChemBERTa-77M-MTR/resolve/main/pytorch_model.bin
+
+# =============================================================================
+# 2) SSL graph models — GraphMVP project Google Drive (same baselines as MolRetrieval)
+#    Folder: https://drive.google.com/drive/folders/1uPsBiQF3bfeCAXSDd4JfyXiTh-qxYfu6?usp=sharing
+#    Upstream README: https://github.com/chao1224/GraphMVP
+#
+# Rename / copy into utils/assets:
+#   Motif.pth              → Motif/model.pth
+#   AM.pth                 → AM/model.pth
+#   GPT_TNN.pth            → GPT_GNN/model.pth
+#   GraphCL.pth            → GraphCL/model.pth
+#
+# GraphMVP: download GraphMVP_complate_features_for_regression.zip (name per MolRetrieval README),
+#   use .../GraphMVP/pretraining_model.pth → save as GraphMVP/model.pth
+# =============================================================================
+
+# =============================================================================
+# 3) MolCLR
+#   https://github.com/yuyangw/MolCLR/raw/master/ckpt/pretrained_gin/checkpoints/model.pth
+#   → utils/assets/MolCLR/model.pth
+# =============================================================================
+
+# =============================================================================
+# 4) Uni-Mol V1 (matches weighthub.py repo dptech/Uni-Mol-Models)
+#   Hub: https://huggingface.co/dptech/Uni-Mol-Models
+#   https://huggingface.co/dptech/Uni-Mol-Models/resolve/main/mol_pre_no_h_220816.pt   → UniMolV1/
+#   https://huggingface.co/dptech/Uni-Mol-Models/resolve/main/mol_pre_all_h_220816.pt  → UniMolV1/ (optional)
+#   https://huggingface.co/dptech/Uni-Mol-Models/resolve/main/mol.dict.txt             → UniMolV1/ (if missing)
+# =============================================================================
+
+# =============================================================================
+# 5) Uni-Mol V2 (matches unimol_tools / dptech/Uni-Mol2 modelzoo layout)
+#   Hub tree: https://huggingface.co/dptech/Uni-Mol2/tree/main/modelzoo
+#   https://huggingface.co/dptech/Uni-Mol2/resolve/main/modelzoo/84M/checkpoint.pt
+#   https://huggingface.co/dptech/Uni-Mol2/resolve/main/modelzoo/310M/checkpoint.pt
+#   https://huggingface.co/dptech/Uni-Mol2/resolve/main/modelzoo/1.1B/checkpoint.pt
+#   Local layout: utils/assets/UniMolV2/84M/checkpoint.pt (etc.)
+# =============================================================================
+
+# =============================================================================
+# 6) Exact reproduction bundle (optional)
+#   Zenodo FP_set: https://doi.org/10.5281/zenodo.18972759
+# =============================================================================
