@@ -1,0 +1,41 @@
+DeepFP_Prep — 本包内文件清单（便于核对上传 GitHub 是否齐全）
+================================================================
+
+根目录:
+  feature_process.py
+  embed.py
+  read_pkls.py
+  requirements-deepfp-prep.txt
+  README.md
+  FILES_MANIFEST.txt         ← 本文件
+
+models/  （全为 .py / .yaml，无权重）
+  MolT5/utils.py
+  BioT5/utils.py
+  ChemBERTa/utils.py
+  MolCLR/*.{py,yaml}
+  SSL/*.{py}
+  UniMolV1/utils.py, utils1.py
+  UniMolV2/utils.py
+
+utils/
+  __init__.py
+  env_utils.py
+  .gitattributes（若存在）
+
+utils/assets/
+  WEIGHTS_DOWNLOAD_LIST.txt  ← 权重下载说明（仅文本，无大文件）
+  ChemBERTa-77M-MTR/  （tokenizer / config 等，无 pytorch_model.bin）
+  MolT5/              （同上，无 pytorch_model.bin）
+  BioT5/
+  UniMolV1/           （mol.dict.txt、weighthub.py 等，无 .pt）
+  MolCLR/             （空目录占位，请放入 model.pth）
+  Motif/
+  AM/
+  GPT_GNN/
+  GraphCL/
+  GraphMVP/
+  UniMolV2/84M, 310M, 1.1B/  （空目录占位，请放入各 checkpoint.pt）
+
+刻意未纳入 Git 的文件类型:
+  *.pth, *.pt, *.bin, __pycache__, .huggingface 缓存

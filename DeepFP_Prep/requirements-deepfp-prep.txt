@@ -1,0 +1,15 @@
+# DeepFP_Prep：与 feature_process / embed 常见依赖（按环境增减）
+# 安装示例: pip install -r requirements-deepfp-prep.txt
+numpy
+pandas
+tqdm
+torch
+transformers
+selfies
+pyyaml
+rdkit-pypi
+torch-geometric
+# UniMol V1/V2 推理（版本需与官方 unimol_tools 说明一致）
+unimol-tools
+# 可选：Mordred / Avalon / Pharm2D 等由 embed.py 按环境注册
+# mordred

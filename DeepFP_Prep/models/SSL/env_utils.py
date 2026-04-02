@@ -1,0 +1,13 @@
+EMBEDDING_DIR = '/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/libs'
+SMILES_LIB_PATH = "/home/data/zou/CMD-/CMD-SMI/cmd-smi/data/taosu_D003/D003.smi"
+CHEMBERTA_PATH = "/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/ChemBERTa-77M-MTR"
+BIOT5_PATH = "/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/BioT5"
+MOLT5_PATH = "/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/MolT5"
+CACHE_PATH = "/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/cache.json"
+MOLCLR_PATH = '/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/MolCLR/model.pth'
+MOTIF_PATH = '/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/Motif/model.pth'
+ATTRMASK_PATH = '/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/AM/model.pth'
+GPTGNN_PATH = '/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/GPT_GNN/model.pth'
+GRAPHCL_PATH = '/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/GraphCL/model.pth'
+GRAPHMVP_PATH = '/home/data/zou/CMD-/CMD-SMI/cmd-smi/MolRetrieval-main/utils/assets/GraphMVP/model.pth'
+BLOCKSIZE = 1e6
