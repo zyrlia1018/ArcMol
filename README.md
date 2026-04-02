@@ -39,7 +39,7 @@ The pipeline is split into **two conda environments**, one for featurization and
 **Environment file:** `cmd_fp.yml`  
 Create and activate: see [Environment setup](#environment-setup).
 
-> **Note (GitHub vs Zenodo).** Training and inference code for ArcMol lives in this repository. Because featurization involves **large checkpoints** and **heavy, model-specific dependencies**, the **full experimental package** (preprocessed datasets, precomputed feature pickles, and aligned asset bundles) is distributed via Zenodo: [doi:10.5281/zenodo.18972759](https://doi.org/10.5281/zenodo.18972759).
+> **Note (GitHub vs Zenodo).** The **full experimental package** (preprocessed datasets, precomputed feature pickles, and aligned asset bundles) is distributed via Zenodo: [doi:10.5281/zenodo.18972759](https://doi.org/10.5281/zenodo.18972759).
 
 **Zenodo archive (summary)**
 
