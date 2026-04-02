@@ -88,9 +88,10 @@ arcmol/
 │   ├── batch_test.py
 │   └── generate_report.py
 │
-├── notebook/                           # Z extraction + visualization walkthroughs (see Step 4)
-│   ├── latent_rep_z_cls.ipynb          # classification (e.g. BBB): t-SNE, 2D/3D sphere views
-│   └── latent_rep_z_reg.ipynb          # regression (e.g. CHEMBL2147 Ki)
+├── notebook/
+│   ├── deepfp_allowed_14_demo.ipynb    # DeepFP_Prep: 14 allowed embeddings × 3 SMILES (see Step 1b)
+│   ├── latent_rep_z_cls.ipynb          # Z visualization, classification (see Step 4)
+│   └── latent_rep_z_reg.ipynb          # Z visualization, regression (see Step 4)
 │
 ├── data/                               # small examples (BBB, CHEMBL2147 Ki)
 ├── checkpoints/                        # example trained bundles
@@ -181,7 +182,17 @@ python feature_process.py
 
 Chunked `*_batch_*.pkl` files can be merged or converted to `{task}_{split}.pkl` for ArcMol (see [`DeepFP_Prep/README.md`](DeepFP_Prep/README.md)).
 
-**中文摘要：** `DeepFP_Prep` 从 CSV 生成多路分子表征；预计算特征与完整实验资源见 Zenodo。大权重按上文与 `env_utils.py` 部署，或使用 `FP_set` / `DEEPFP_ASSETS_DIR`。细节见 `DeepFP_Prep/README.md` 与 `WEIGHTS_DOWNLOAD_LIST.txt`。
+**Worked example — notebook (14 `allowed` embeddings)**
+
+End-to-end demo with **`cmd_fp` active**: after checkpoints are present under `DeepFP_Prep/utils/assets` (or `DEEPFP_ASSETS_DIR`), open and run:
+
+| Notebook | What it does |
+|----------|----------------|
+| [`notebook/deepfp_allowed_14_demo.ipynb`](notebook/deepfp_allowed_14_demo.ipynb) | Three random SMILES → all **14** names in `ALLOWED_EMBEDDINGS` ∩ `Embedding.available()` + RDKit descriptors → chunked PKL under `notebook/_demo_pkls_output/`; summary table of vector dimensions. |
+
+Edit `REPO_ROOT` in the first cells if your clone path is not auto-detected. Outputs in the notebook are in English.
+
+**中文摘要：** `DeepFP_Prep` 从 CSV 生成多路分子表征；预计算特征与完整实验资源见 Zenodo。大权重按上文与 `env_utils.py` 部署，或使用 `FP_set` / `DEEPFP_ASSETS_DIR`。细节见 `DeepFP_Prep/README.md` 与 `WEIGHTS_DOWNLOAD_LIST.txt`。分步演示见上表 `deepfp_allowed_14_demo.ipynb`。
 
 ---
 
