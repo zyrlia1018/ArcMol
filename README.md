@@ -6,7 +6,7 @@ This repository accompanies the paper:
 
 It provides a **fully reproducible pipeline** for molecular property prediction using ArcMol, covering:
 
-- Molecular representation preparation
+- Molecular representation preparation (**`DeepFP_Prep/`**: CSV → multi-representation PKLs, see below)
 - Task-adaptive ArcMol training
 - Optuna-based hyperparameter search
 - Test-only inference from trained models
@@ -79,12 +79,20 @@ cmd_arcmol.yml
 
 ```text
 arcmol/
+├── DeepFP_Prep/                        # DeepFP: CSV → chunked PKLs (fingerprints + pretrained embeddings + RDKit descriptors)
+│   ├── feature_process.py
+│   ├── embed.py
+│   ├── read_pkls.py
+│   ├── models/ , utils/
+│   └── utils/assets/WEIGHTS_DOWNLOAD_LIST.txt   # where to place large checkpoints (not in Git)
+│
 ├── src/
 │   ├── attention_pooling_fusion.py     # ArcMol attention pooling module
 │   ├── main_arcmol_mcc_r2.py           # ArcMol training (MCC / R2)
 │   ├── optuna_arcmol_search.py         # Optuna (single task)
 │   ├── optuna_batch_tasks.py           # Optuna (batch tasks)
-│   ├── test_only_arcmol.py             # Test-only inference
+│   ├── test_only_arcmol.py             # Test-only inference (split PKLs with labels)
+│   ├── predict_arcmol_from_fp_pkls.py  # Label-free inference from DeepFP PKL directory → one wide CSV
 │   └── extract_features_z.py           # Extract learned ArcMol Z representations
 │
 ├── scripts/
@@ -150,26 +158,46 @@ Each `.pkl` file should correspond to one data split:
 {task_name}_test.pkl
 ```
 
-The exact feature extraction method (e.g., fingerprints, pretrained encoders) is **outside the scope of this repository**.
+For training, ArcMol still expects split-wise files named `{task_name}_{train|valid|test}.pkl`. You can produce them with **`DeepFP_Prep/`** (see next section) or any compatible pipeline.
 
 ---
 
-## Step 1: Prepare Molecular Representation `.pkl` Files (cmd_fp)
+## Step 1b: DeepFP_Prep — multi-representation PKLs from CSV (included)
 
-ArcMol **consumes precomputed** molecular representation files in `.pkl` format:
+This repository ships **`DeepFP_Prep/`**, a **lightweight** feature pipeline (no large pretrained weights in Git) that:
 
-- `{task_name}_train.pkl`
-- `{task_name}_valid.pkl` (optional)
-- `{task_name}_test.pkl`
+- Reads a CSV with at least a SMILES column (optional `y`, `split`, extra columns).
+- Standardizes SMILES and computes **multiple embeddings** (RDKit fingerprints, MolT5, BioT5, SSL graph models, UniMol, … — whatever is registered in `DeepFP_Prep/embed.py` and available in your environment).
+- Optionally writes **`rdkit_descriptors`** (full RDKit descriptor dict per molecule).
+- Writes **chunked** `*_batch_*.pkl` files (one dict: `row_id → record`), which you can merge or convert to `{task}_{split}.pkl` for training.
 
-These `.pkl` files are generated in the **`cmd_fp`** environment using a *separate feature-generation pipeline* (e.g., fingerprints / pretrained embeddings).
-> Note: The feature-generation code is **not included** in this repository; please use your existing pipeline to produce the required `{task_name}_{split}.pkl` files.
+**Prepare model checkpoints** (same idea as [MolRetrieval — Getting Started](https://github.com/linhaowei1/MolRetrieval#getting-started)): place files so paths match `DeepFP_Prep/utils/env_utils.py`, or set **`DEEPFP_ASSETS_DIR`** to an existing asset tree (e.g. Zenodo `FP_set`).
 
-After you have produced the `.pkl` files, place them under `data/` (or any directory you will pass as `--data_dir`).
+- **Language models (Hugging Face):** use `huggingface-cli` ([download guide](https://huggingface.co/docs/huggingface_hub/guides/download)). Example repos: `DeepChem/ChemBERTa-77M-MTR` → folder `ChemBERTa-77M-MTR/`; `QizhiPei/biot5-base` → `BioT5/`; `laituan245/molt5-base` → `MolT5/`. Direct weights: [ChemBERTa](https://huggingface.co/DeepChem/ChemBERTa-77M-MTR/resolve/main/pytorch_model.bin) · [BioT5](https://huggingface.co/QizhiPei/biot5-base/resolve/main/pytorch_model.bin) · [MolT5](https://huggingface.co/laituan245/molt5-base/resolve/main/pytorch_model.bin).
+- **SSL graph models:** [GraphMVP Google Drive folder](https://drive.google.com/drive/folders/1uPsBiQF3bfeCAXSDd4JfyXiTh-qxYfu6?usp=sharing) ([GraphMVP repo](https://github.com/chao1224/GraphMVP)). Rename: `Motif.pth` → `Motif/model.pth`, `AM.pth` → `AM/model.pth`, `GPT_TNN.pth` → `GPT_GNN/model.pth`, `GraphCL.pth` → `GraphCL/model.pth`. **GraphMVP:** from `GraphMVP_complate_features_for_regression.zip`, copy `…/GraphMVP/pretraining_model.pth` → `GraphMVP/model.pth`.
+- **MolCLR:** [checkpoint `model.pth`](https://github.com/yuyangw/MolCLR/raw/master/ckpt/pretrained_gin/checkpoints/model.pth) → `MolCLR/model.pth`.
+- **Uni-Mol V1:** [dptech/Uni-Mol-Models](https://huggingface.co/dptech/Uni-Mol-Models) — e.g. [mol_pre_no_h_220816.pt](https://huggingface.co/dptech/Uni-Mol-Models/resolve/main/mol_pre_no_h_220816.pt), optional [mol_pre_all_h_220816.pt](https://huggingface.co/dptech/Uni-Mol-Models/resolve/main/mol_pre_all_h_220816.pt), [mol.dict.txt](https://huggingface.co/dptech/Uni-Mol-Models/resolve/main/mol.dict.txt) under `UniMolV1/`.
+- **Uni-Mol V2:** [modelzoo tree](https://huggingface.co/dptech/Uni-Mol2/tree/main/modelzoo) — e.g. [84M](https://huggingface.co/dptech/Uni-Mol2/resolve/main/modelzoo/84M/checkpoint.pt) · [310M](https://huggingface.co/dptech/Uni-Mol2/resolve/main/modelzoo/310M/checkpoint.pt) · [1.1B](https://huggingface.co/dptech/Uni-Mol2/resolve/main/modelzoo/1.1B/checkpoint.pt) under `UniMolV2/{84M,310M,1.1B}/`.
+- **Optional full bundle:** [Zenodo record](https://doi.org/10.5281/zenodo.18972759) (includes `FP_set.tar.gz`).
+
+Short index: `DeepFP_Prep/utils/assets/WEIGHTS_DOWNLOAD_LIST.txt`. Full tables and commands: **`DeepFP_Prep/README.md`**.
+
+**Quick start (cmd_fp or a PyTorch+RDKit env):**
+
+```bash
+cd DeepFP_Prep
+pip install -r requirements-deepfp-prep.txt
+python feature_process.py --list-embeddings    # names available on this machine
+# Edit EMBEDDING_MODE in feature_process.py: "all" vs "allowed" subset, then:
+python feature_process.py
+```
+
+More detail: `DeepFP_Prep/README.md`.
+
+**中文摘要：** `DeepFP_Prep` 从 CSV 批量生成多种分子表征（指纹、ChemBERTa/MolT5/BioT5、SSL 图模型、Uni-Mol V1/V2、可选 RDKit 描述符）的 pkl；大权重按上文链接与 `env_utils.py` 放置，或使用 Zenodo `FP_set` / `DEEPFP_ASSETS_DIR`。细则见 `DeepFP_Prep/README.md` 与 `WEIGHTS_DOWNLOAD_LIST.txt`。
 
 ---
 
-## Step 2:
 ## Step 2: ArcMol Training (with Hyperparameter Optimization)
 
 ArcMol models are trained in the **`cmd_arcmol`** environment.
@@ -277,9 +305,30 @@ python src/test_only_arcmol.py \
   --save_preds preds_bbb.csv
 ```
 
+---
 
+## Step 3b: Label-free prediction from DeepFP PKLs (wide CSV)
+
+If you only have **DeepFP-style chunked PKLs** (a directory of `*_batch_*.pkl` with `SMILES`, `rdkit_descriptors`, and all embeddings used during training — **no labels required**), use:
+
+```bash
+conda activate cmd_arcmol
+cd /path/to/ArcMol-main
+python src/predict_arcmol_from_fp_pkls.py \
+  --pkl_dir /path/to/your_deepfp_pkls \
+  --checkpoints_root checkpoints
+```
+
+- **Default behavior:** scans every `checkpoints/<task>/*.bundle.pt` + matching `*.pth` and writes **one** wide table:  
+  **`预测/admet_all_endpoints_preds.csv`** (under the repo root; override with `--out_dir` / `--out_csv`).
+- **Single-task debug:** `--mode single --bundle ... --ckpt ...`
+
+Requirements: PKL keys must match each bundle’s `fusion_embed_types` and RDKit attribute set (same as training). See `src/predict_arcmol_from_fp_pkls.py` header for options.
+
+**中文说明：** 无标签时，用 DeepFP 生成的分块 pkl 目录，可对 `checkpoints` 下全部已训练任务一次性推理，结果合并为**单个 CSV**（默认保存在仓库根目录的 `预测/` 文件夹）。
 
 ---
+
 ## Step 4: Extract Learned ArcMol Hidden Representations (Z)
 
 `extract_features_z.py` extracts **trained ArcMol hidden-layer representations (Z)** for downstream analysis, using:
