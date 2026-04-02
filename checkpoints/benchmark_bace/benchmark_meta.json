@@ -1,0 +1,9 @@
+{
+  "source_best_summary": "/home/data/zou/CMD-/CMD-ADMET/CMD-ADMET/ARCMOL_FULL/arcmol_batch_runs_seed42/bace/best_summary.json",
+  "source_ckpt": "/home/data/zou/CMD-/CMD-ADMET/CMD-ADMET/ARCMOL_FULL/arcmol_batch_runs_seed42/bace/trial_0182/best_arcmol_arc_reg_RDKFingerprint+MACCSkeys+EStateFingerprint+MolT5+BioT5+AttrMask+GPT-GNN+GraphCL+MolCLR+GraphMVP+GROVER+UniMolV1+UniMolV2_84M+UniMolV2_1.1B_seed42.pth",
+  "task_name": "bace",
+  "task_type": "cls",
+  "reported_test_metric": 0.8932971014492753,
+  "metric_name": "AUC",
+  "data_dir_note": "Ship only data/<task>/<task>_test.pkl; bundle was built with full PKLs."
+}
