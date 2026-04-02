@@ -2,11 +2,15 @@
 
 Official code companion to the paper **ArcMol Enables Task-Adaptive Spherical Representation Learning for Molecular Property Prediction**.
 
+**Repository:** [github.com/zyrlia1018/ArcMol](https://github.com/zyrlia1018/ArcMol)
+
 This repository provides a reproducible workflow for molecular property prediction with ArcMol, including:
 
 - Molecular featurization via **`DeepFP_Prep/`** (CSV → multi-representation `.pkl`; see [Step 1b](#step-1b-deepfp_prep--multi-representation-pkls-from-csv))
 - Task-adaptive ArcMol training and Optuna-based hyperparameter search
 - Test-time inference and batch evaluation
+- **Label-free, multi-endpoint ADMET-style prediction** from merged or chunked DeepFP PKLs ([Step 3b](#step-3b-label-free-prediction-from-deepfp-pkls), [`admet_predict_from_fp_pkl.ipynb`](notebook/admet_predict_from_fp_pkl.ipynb))
+- **MoleculeNet benchmark replay** (BACE, Clintox, ESOL) via [`benchmark_molecule_net_bace_clintox_esol.ipynb`](notebook/benchmark_molecule_net_bace_clintox_esol.ipynb)
 - Extraction of **task-adaptive spherical latent representations** for downstream analysis
 
 ---
@@ -23,7 +27,7 @@ This repository provides a reproducible workflow for molecular property predicti
 
 ## Computing Environments
 
-The pipeline is split into **two conda environments**, one for featurization and one for ArcMol training and inference.
+The pipeline uses **two conda environments**: one for featurization and one for ArcMol training, inference, and notebooks.
 
 ### 1. `cmd_fp` — molecular representation preparation
 
@@ -36,10 +40,10 @@ The pipeline is split into **two conda environments**, one for featurization and
 
 - `{task}_train.pkl`, `{task}_valid.pkl`, `{task}_test.pkl`
 
-**Environment file:** `cmd_fp.yml`  
+**Environment file:** [`cmd_fp.yml`](cmd_fp.yml)  
 Create and activate: see [Environment setup](#environment-setup).
 
-> **Note (GitHub vs Zenodo).** Training and inference code for ArcMol lives in this repository. Because featurization involves **large checkpoints** and **heavy, model-specific dependencies**, the **full experimental package** (preprocessed datasets, precomputed feature pickles, and aligned asset bundles) is distributed via Zenodo: [doi:10.5281/zenodo.18972759](https://doi.org/10.5281/zenodo.18972759).
+> **Note (GitHub vs Zenodo).** Training and inference code for ArcMol lives in this repository. Because featurization involves **large checkpoints** and **heavy, model-specific dependencies**, the **full experimental package** (preprocessed datasets, precomputed feature pickles, aligned asset bundles, and **ADMET ArcMol task weights**) is distributed via Zenodo: [doi:10.5281/zenodo.18972759](https://doi.org/10.5281/zenodo.18972759).
 
 **Zenodo archive (summary)**
 
@@ -47,20 +51,24 @@ Create and activate: see [Environment setup](#environment-setup).
 |--------|----------|
 | `datasets_processed.tar.gz` | Raw inputs and preprocessed `.pkl` files with molecular fingerprints and fused features used in the study. |
 | `FP_set.tar.gz` | Featurization source tree and **pre-trained** backbone weights aligned with the paper setup. |
+| *(see record)* | **ADMET / multi-task ArcMol bundles** (`.bundle.pt` + `.pth` per endpoint) — download and extract under repo-root **`checkpoints/`** (see [`releases/checkpoints_github_parts/MANIFEST.txt`](releases/checkpoints_github_parts/MANIFEST.txt) for expected task folder names). |
 
 A **Docker image** is under development to simplify deployment of the featurization stack (multiple deep learning back ends). Until it is published, use `cmd_fp.yml` and the [DeepFP_Prep](DeepFP_Prep/README.md) documentation.
 
 ---
 
-### 2. `cmd_arcmol` — ArcMol training, inference, and analysis
+### 2. `cmd_admet` — ArcMol training, inference, analysis, and notebooks
 
 **Role**
 
 - Train ArcMol models and run Optuna studies.
 - Run held-out inference and evaluation.
+- Run **label-free multi-checkpoint prediction** and **benchmark notebooks**.
 - Export **task-adaptive hidden representations (Z)** from trained checkpoints.
 
-**Environment file:** `cmd_arcmol.yml`
+**Environment file:** [`cmd_admet.yml`](cmd_admet.yml)  
+
+> If your clone still uses `cmd_arcmol.yml`, it is the same role; prefer `cmd_admet.yml` for consistency with this repo.
 
 ---
 
@@ -81,26 +89,41 @@ arcmol/
 │   ├── optuna_arcmol_search.py         # Optuna, single task
 │   ├── optuna_batch_tasks.py           # Optuna, task list from CSV
 │   ├── test_only_arcmol.py             # inference on split PKLs (with labels)
-│   ├── predict_arcmol_from_fp_pkls.py  # label-free inference from DeepFP PKL dir → wide CSV
+│   ├── predict_arcmol_from_fp_pkls.py  # label-free inference: DeepFP PKL dir or merged PKL → wide CSV (all checkpoints)
 │   └── extract_features_z.py           # export learned Z representations
 │
 ├── scripts/
-│   ├── batch_test.py
-│   └── generate_report.py
+│   ├── batch_test.py                   # batch evaluation driver
+│   ├── generate_report.py              # aggregate metrics
+│   ├── eval_best_from_summary.py       # (if shipped) TEST replay from best_summary.json — used by benchmark notebook
+│   ├── assemble_bundle_from_ckpt.py
+│   ├── assemble_bundle_from_best_summary.py
+│   ├── scan_lipophilicity_rmse.py
+│   ├── pack_admet_checkpoints.sh       # tar checkpoints/ (excludes benchmark_* by default)
+│   ├── pack_checkpoints_for_github.py  # optional: split checkpoints into several .tar.gz parts
+│   ├── pack_checkpoints_split_github.sh
+│   └── sync_admet_checkpoints_from_best.sh   # optional: rsync full ADMET tree into checkpoints/
 │
 ├── notebook/
-│   ├── deepfp_allowed_14_demo.ipynb    # DeepFP_Prep: 14 allowed embeddings × 3 SMILES (see Step 1b)
-│   ├── latent_rep_z_cls.ipynb          # Z visualization, classification (see Step 4)
-│   └── latent_rep_z_reg.ipynb          # Z visualization, regression (see Step 4)
+│   ├── deepfp_allowed_14_demo.ipynb              # DeepFP_Prep: 14 allowed embeddings × 3 SMILES (Step 1b)
+│   ├── admet_predict_from_fp_pkl.ipynb           # ADMET: merged DeepFP PKL → all endpoints; Zenodo weights; reviewer-facing tables
+│   ├── benchmark_molecule_net_bace_clintox_esol.ipynb   # MoleculeNet: BACE / Clintox / ESOL TEST replay vs paper numbers
+│   ├── latent_rep_z_cls.ipynb                    # Z visualization, classification (Step 4)
+│   └── latent_rep_z_reg.ipynb                    # Z visualization, regression (Step 4)
 │
-├── data/                               # small examples (BBB, CHEMBL2147 Ki)
-├── checkpoints/                        # example trained bundles
-├── configs/                            # task list templates
+├── releases/
+│   └── checkpoints_github_parts/       # MANIFEST.txt (+ optional split tarballs); large *.tar.gz usually gitignored
+│
+├── data/                               # small examples (BBB, CHEMBL2147 Ki); benchmark tasks may ship *_test.pkl only
+├── checkpoints/                        # trained bundles per task (populate from Zenodo; not fully in Git)
+├── configs/                            # task list templates (e.g. tasks_template_admet.csv)
+├── toc/                                # figures for README
 ├── cmd_fp.yml
-├── cmd_arcmol.yml
+├── cmd_admet.yml
 ├── requirements.txt
+├── LICENSE
 ├── README.md
-└── .gitignore
+└── .gitignore                          # typically ignores predictions/, large release tarballs
 ```
 
 ---
@@ -114,11 +137,11 @@ conda env create -f cmd_fp.yml
 conda activate cmd_fp
 ```
 
-### `cmd_arcmol`
+### `cmd_admet` (ArcMol + notebooks)
 
 ```bash
-conda env create -f cmd_arcmol.yml
-conda activate cmd_arcmol
+conda env create -f cmd_admet.yml
+conda activate cmd_admet
 ```
 
 ---
@@ -198,7 +221,7 @@ Edit `REPO_ROOT` in the first cells if your clone path is not auto-detected. Out
 
 ## Step 2: ArcMol training
 
-Use the **`cmd_arcmol`** environment. Two modes are supported:
+Use the **`cmd_admet`** environment. Two modes are supported:
 
 1. **Fixed hyperparameters** — single run with user-specified settings.
 2. **Optuna search** — recommended configuration for the paper; explores learning rate, ArcFace margin/scale, MoE, fusion, and regularization.
@@ -208,7 +231,7 @@ Use the **`cmd_arcmol`** environment. Two modes are supported:
 #### Classification (BBB)
 
 ```bash
-conda activate cmd_arcmol
+conda activate cmd_admet
 python src/main_arcmol_mcc_r2.py \
   --data_dir data \
   --task_name bbb_logbb \
@@ -242,7 +265,7 @@ python src/main_arcmol_mcc_r2.py \
 #### Single task
 
 ```bash
-conda activate cmd_arcmol
+conda activate cmd_admet
 python src/optuna_arcmol_search.py \
   --data_dir data \
   --task_name bbb_logbb \
@@ -278,7 +301,7 @@ Each row defines an independent study; task type (`cls` / `reg`) may be given or
 ## Step 3: Test-only inference (split PKLs with labels)
 
 ```bash
-conda activate cmd_arcmol
+conda activate cmd_admet
 python src/test_only_arcmol.py \
   --data_dir data \
   --task_name bbb_logbb \
@@ -293,23 +316,58 @@ python src/test_only_arcmol.py \
 
 ## Step 3b: Label-free prediction from DeepFP PKLs
 
-For directories of **DeepFP-style** chunked PKLs (`*_batch_*.pkl` with `SMILES`, `rdkit_descriptors`, and the same embedding keys as training; **labels not required**):
+[`src/predict_arcmol_from_fp_pkls.py`](src/predict_arcmol_from_fp_pkls.py) runs **label-free** inference when you already have DeepFP-style PKLs (chunked `*_batch_*.pkl` **or** a **single merged** pickle: top-level `dict` of `row_id → record` with `SMILES`, `rdkit_descriptors`, and the same embedding keys as training).
+
+**Checkpoints**
+
+- Download **ADMET / multi-endpoint** trained bundles from **Zenodo** ([doi:10.5281/zenodo.18972759](https://doi.org/10.5281/zenodo.18972759)) and extract into **`checkpoints/`** so each task is `checkpoints/<task_name>/` with a matching `*.bundle.pt` + same-stem `*.pth`.
+- Expected task names are listed in [`configs/tasks_template_admet.csv`](configs/tasks_template_admet.csv) and in [`releases/checkpoints_github_parts/MANIFEST.txt`](releases/checkpoints_github_parts/MANIFEST.txt).
+
+**CLI examples**
 
 ```bash
-conda activate cmd_arcmol
-cd /path/to/ArcMol-main
+conda activate cmd_admet
+cd /path/to/ArcMol
+
+# All tasks under checkpoints/: either chunked PKL directory OR one merged file
 python src/predict_arcmol_from_fp_pkls.py \
   --pkl_dir /path/to/your_deepfp_pkls \
-  --checkpoints_root checkpoints
+  --checkpoints_root checkpoints \
+  --out_dir predictions \
+  --out_csv admet_all_endpoints_preds.csv
+
+python src/predict_arcmol_from_fp_pkls.py \
+  --pkl_file data/_demo_pkls_output/all_batch_0_3.pkl \
+  --checkpoints_root checkpoints \
+  --out_dir predictions \
+  --out_csv admet_all_endpoints_preds.csv \
+  --no_skip_benchmark
 ```
 
-**Defaults:** discover every `checkpoints/<task>/*.bundle.pt` with a matching `*.pth`, and write one wide table: **`预测/admet_all_endpoints_preds.csv`** (override with `--out_dir` / `--out_csv`). Use `--mode single` with explicit `--bundle` / `--ckpt` for a single task.
+**Behavior**
 
-PKL keys must match each bundle’s `fusion_embed_types` and RDKit attribute set. See the script header in `src/predict_arcmol_from_fp_pkls.py` for all options.
+- **`--mode all_checkpoints` (default):** every subdirectory of `checkpoints/` that contains a paired `*.bundle.pt` and `*.pth` is run; results are **one wide CSV** (one row per compound, one or more columns per endpoint). Classification tasks add `_pred_prob` / `_pred_label`; regression adds `_pred`.
+- **`--no_skip_benchmark`:** include `benchmark_*` folders (default CLI skips them; use this to match “scan everything”).
+- **`--exclude_dir_prefix`:** repeatable; skip folder names with a given prefix.
+- **`--mode single`:** pass `--bundle` / `--ckpt` for one task only.
 
-**Example:** Set `--pkl_dir` to the folder that contains DeepFP_Prep **chunked** `*_batch_*.pkl` files; set `--checkpoints_root` to your trained models (e.g. `checkpoints` mirroring `checkpoints/<task>/`).
+**Default output directory** in the script is **`预测/`** (Chinese folder name). You can set **`--out_dir predictions`** for an English path (recommended for sharing).
 
-**中文说明：** 无标签时，用 DeepFP 分块 pkl 目录可对 `checkpoints` 下全部任务一次性推理，默认合并为单个 CSV（仓库根目录 `预测/`）。
+**Notebook (reviewer-friendly):** [`notebook/admet_predict_from_fp_pkl.ipynb`](notebook/admet_predict_from_fp_pkl.ipynb) sets `sys.path` to `src/`, loads a merged demo PKL, runs all checkpoints, writes CSV under `predictions/`, and **embeds summary tables in the notebook** for supplementary / peer review. **Restart kernel & run all** after downloading Zenodo weights.
+
+PKL keys must match each bundle’s `fusion_embed_types` and RDKit attribute set. See the script docstring for full options.
+
+**中文说明：** 无标签时，可用 DeepFP 分块目录或单个合并 pkl，对 `checkpoints/` 下全部成对 bundle+权重一次性宽表推理；权重请从 Zenodo 下载到 `checkpoints/`。
+
+---
+
+## Step 3c: MoleculeNet benchmark notebook (BACE, Clintox, ESOL)
+
+| Notebook | What it does |
+|----------|----------------|
+| [`notebook/benchmark_molecule_net_bace_clintox_esol.ipynb`](notebook/benchmark_molecule_net_bace_clintox_esol.ipynb) | Replays **held-out TEST** evaluation for **BACE**, **Clintox**, **ESOL** using `checkpoints/benchmark_bace`, `benchmark_clintox`, `benchmark_esol` (`best_summary.json`, `model.pth`, `calib.json` for classification, optional `eval_preprocess.pkl` when only `*_test.pkl` is shipped). Compares to paper-reported metrics in the notebook. Expects `scripts/eval_best_from_summary.py` if your layout uses that entry point — adjust `REPO_ROOT` / paths in the first cells. |
+
+Use the same environment as ArcMol (**GPU recommended** for parity with saved `best_summary.json`).
 
 ---
 
@@ -332,7 +390,7 @@ PKL keys must match each bundle’s `fusion_embed_types` and RDKit attribute set
 **Example**
 
 ```bash
-conda activate cmd_arcmol
+conda activate cmd_admet
 python src/extract_features_z.py \
   --data_dir data \
   --task_name bbb_logbb \
@@ -361,14 +419,25 @@ Open them from the repo root (or set `sys.path` as in the first cells) and edit 
 ## Step 5: Batch testing and reporting
 
 ```bash
-conda activate cmd_arcmol
+conda activate cmd_admet
 python scripts/batch_test.py
 python scripts/generate_report.py
 ```
 
 **Outputs:** `batch_test_results/*.csv`, `my_model_summary.csv`
 
-**Example:** In `scripts/batch_test.py`, set `TASKS_CSV_PATH` (must include `task_name` and `data_dir` columns), `CHECKPOINTS_ROOT`, and `OUTPUT_ROOT`, then run the two commands from the repository root with **`cmd_arcmol`** active. Use `scripts/generate_report.py` to aggregate metrics into `my_model_summary.csv` (edit paths inside the script if needed).
+**Example:** In `scripts/batch_test.py`, set `TASKS_CSV_PATH` (must include `task_name` and `data_dir` columns), `CHECKPOINTS_ROOT`, and `OUTPUT_ROOT`, then run the two commands from the repository root with **`cmd_admet`** active. Use `scripts/generate_report.py` to aggregate metrics into `my_model_summary.csv` (edit paths inside the script if needed).
+
+---
+
+## Helper scripts (checkpoints & releases)
+
+| Script | Purpose |
+|--------|---------|
+| [`scripts/pack_admet_checkpoints.sh`](scripts/pack_admet_checkpoints.sh) | Create a single `tar.gz` of `checkpoints/` (excludes `benchmark_*` by default) for backup or mirroring. |
+| [`scripts/pack_checkpoints_for_github.py`](scripts/pack_checkpoints_for_github.py) | Optional: split `checkpoints/` into multiple `.tar.gz` parts (see `--help`). Regenerates `MANIFEST.txt` with Zenodo header. |
+| [`scripts/pack_checkpoints_split_github.sh`](scripts/pack_checkpoints_split_github.sh) | Shell wrapper for the Python packer. |
+| [`scripts/sync_admet_checkpoints_from_best.sh`](scripts/sync_admet_checkpoints_from_best.sh) | Optional: `rsync` a local “full ADMET” tree into `checkpoints/`. |
 
 ---
 
@@ -377,6 +446,7 @@ python scripts/generate_report.py
 - **Featurization vs ArcMol:** raw or engineered molecular inputs are produced upstream; ArcMol consumes fixed `.pkl` schemas.
 - **Z extraction:** always run **after** training, from the exported bundle and checkpoint aligned with that run.
 - **Bundles:** `.bundle.pt` pins preprocessing and fusion metadata so inference and Z export stay consistent across machines.
+- **ADMET wide prediction:** Zenodo weights + merged/chunked DeepFP PKLs aligned with training embeddings; rerun notebooks with **Kernel → Restart & Run All** before sharing executed `.ipynb` with reviewers.
 
 ---
 
@@ -397,4 +467,4 @@ If you use this code, please cite:
 
 ## License
 
-This repository is released for **research use only**.
+This project is licensed under the [MIT License](LICENSE).
