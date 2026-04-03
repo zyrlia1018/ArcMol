@@ -51,7 +51,6 @@ Create and activate: see [Environment setup](#environment-setup).
 |--------|----------|
 | `datasets_processed.tar.gz` | Raw inputs and preprocessed `.pkl` files with molecular fingerprints and fused features used in the study. |
 | `FP_set.tar.gz` | Featurization source tree and **pre-trained** backbone weights aligned with the paper setup. |
-| *(see record)* | **ADMET / multi-task ArcMol bundles** (`.bundle.pt` + `.pth` per endpoint) — download and extract under repo-root **`checkpoints/`** (see [`releases/checkpoints_github_parts/MANIFEST.txt`](releases/checkpoints_github_parts/MANIFEST.txt) for expected task folder names). |
 
 A **Docker image** is under development to simplify deployment of the featurization stack (multiple deep learning back ends). Until it is published, use `cmd_fp.yml` and the [DeepFP_Prep](DeepFP_Prep/README.md) documentation.
 
